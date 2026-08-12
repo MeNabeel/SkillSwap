@@ -13,8 +13,10 @@ import {
 import { SkillBadge } from "./SkillBadge";
 import { INITIAL_SKILLS, EXPERIENCE_LEVELS, SKILL_CATEGORIES, SeedSkill } from "@/lib/constants/skills";
 import { fetchDatabaseSkills, fetchSkillCategories } from "@/lib/skills/queries";
-import { Search, Plus, Check, SlidersHorizontal, Sparkles } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { Search, Plus, Check, SlidersHorizontal, Sparkles, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export interface SelectedSkillItem {
   skillId: string;
@@ -44,6 +46,7 @@ export function SkillSelector({
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedSkillForAdd, setSelectedSkillForAdd] = useState<SeedSkill | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<"Beginner" | "Intermediate" | "Advanced" | "Expert">("Intermediate");
+  const [creatingCustom, setCreatingCustom] = useState(false);
 
   useEffect(() => {
     async function loadDynamicSkills() {
@@ -60,6 +63,80 @@ export function SkillSelector({
   }, []);
 
   const isTeaching = type === "teaching";
+
+  // Handle adding custom skill to Supabase database
+  const handleAddCustomSkill = async () => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return;
+
+    // Check if skill already exists in dbSkills
+    const existing = dbSkills.find((s) => s.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) {
+      if (!selectedSkills.some((s) => s.skillId === existing.id)) {
+        onChange([...selectedSkills, { skillId: existing.id, name: existing.name, category: existing.category, level: selectedLevel }]);
+      }
+      setSearchQuery("");
+      return;
+    }
+
+    setCreatingCustom(true);
+    try {
+      const supabase = createClient();
+      const cat = selectedCategory === "all" ? "General" : selectedCategory;
+
+      const { data: newSkill, error } = await (supabase as any)
+        .from("skills")
+        .insert({
+          name: trimmed,
+          category: cat,
+          description: "User added custom skill",
+          icon: "code",
+        })
+        .select()
+        .single();
+
+      if (error) {
+        // If skill name unique constraint triggered, fetch existing
+        const { data: existingSkill } = await (supabase as any)
+          .from("skills")
+          .select("*")
+          .eq("name", trimmed)
+          .single();
+
+        if (existingSkill) {
+          const item: SeedSkill = {
+            id: existingSkill.id,
+            name: existingSkill.name,
+            category: existingSkill.category,
+            description: existingSkill.description || "",
+            icon: existingSkill.icon || "code",
+          };
+          setDbSkills((prev) => [...prev, item]);
+          onChange([...selectedSkills, { skillId: item.id, name: item.name, category: item.category, level: selectedLevel }]);
+          toast.success(`Added skill "${item.name}"!`);
+        } else {
+          toast.error("Failed to add custom skill.");
+        }
+      } else if (newSkill) {
+        const item: SeedSkill = {
+          id: newSkill.id,
+          name: newSkill.name,
+          category: newSkill.category,
+          description: newSkill.description || "",
+          icon: newSkill.icon || "code",
+        };
+        setDbSkills((prev) => [...prev, item]);
+        onChange([...selectedSkills, { skillId: item.id, name: item.name, category: item.category, level: selectedLevel }]);
+        toast.success(`Custom skill "${item.name}" created and added!`);
+      }
+      setSearchQuery("");
+    } catch (err) {
+      console.error("Custom skill addition error:", err);
+      toast.error("Failed to add custom skill.");
+    } finally {
+      setCreatingCustom(false);
+    }
+  };
 
   // Filter skills based on search query and category
   const filteredSkills = useMemo(() => {
@@ -201,9 +278,33 @@ export function SkillSelector({
 
       {/* Skills Grid List */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[260px] overflow-y-auto pr-1">
-        {filteredSkills.length === 0 ? (
-          <div className="col-span-full py-6 text-center text-xs text-muted-foreground">
-            No matching skills found. Try a different search.
+        {filteredSkills.length === 0 && searchQuery.trim() ? (
+          <div className="col-span-full py-6 text-center space-y-3 bg-muted/20 border border-dashed rounded-xl p-4">
+            <p className="text-xs text-muted-foreground">
+              No existing skill matches <span className="font-semibold text-foreground">"{searchQuery.trim()}"</span>.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddCustomSkill}
+              disabled={creatingCustom}
+              className="text-xs font-semibold border-primary/40 text-primary hover:bg-primary/10"
+            >
+              {creatingCustom ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Add "{searchQuery.trim()}" as custom skill
+                </>
+              )}
+            </Button>
+          </div>
+        ) : filteredSkills.length === 0 ? (
+          <div className="col-span-full py-8 text-center text-xs text-muted-foreground">
+            No skills found in this category.
           </div>
         ) : (
           filteredSkills.map((skill) => {

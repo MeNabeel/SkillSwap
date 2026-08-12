@@ -157,12 +157,14 @@ export default function ProfileEditPage() {
         bio: values.bio || "",
         experience_level: values.experienceLevel,
         availability: values.availability,
+        profile_visibility: "public",
+        onboarding_completed: true,
         updated_at: new Date().toISOString(),
       });
 
       if (profileError) {
         console.error("Profile save error", profileError);
-        toast.error("Unable to save profile. Please check your data.");
+        toast.error(profileError.message || "Unable to save profile. Please check your data.");
         setIsSaving(false);
         return;
       }
@@ -190,10 +192,11 @@ export default function ProfileEditPage() {
       }
 
       toast.success("Profile updated successfully!");
+      router.refresh();
       router.push("/profile");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Profile save error:", err);
-      toast.error("Unable to save your profile. Please try again.");
+      toast.error(err.message || "Unable to save your profile. Please try again.");
     } finally {
       setIsSaving(false);
     }

@@ -10,7 +10,12 @@ import { Progress } from "@/components/ui/progress";
 import { SkillBadge } from "@/components/skills/SkillBadge";
 import { StudentCard } from "@/components/discover/StudentCard";
 import { fetchDiscoverStudents } from "@/lib/discover/queries";
-import { fetchUserProfile, calculateProfileCompletion } from "@/lib/profiles/queries";
+import { fetchUserProfile } from "@/lib/profiles/queries";
+import { fetchUserExchanges } from "@/lib/exchanges/queries";
+import { fetchUserRequests } from "@/lib/requests/queries";
+import { fetchUserNotifications } from "@/lib/notifications/queries";
+import { fetchUserConversations } from "@/lib/chat/queries";
+import { fetchUserRatingSummary } from "@/lib/ratings/queries";
 import { StudentCardData } from "@/lib/discover/types";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -23,6 +28,11 @@ import {
   ArrowRight,
   Zap,
   Users,
+  Repeat,
+  GitPullRequest,
+  Star,
+  MessageSquare,
+  Bell,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -33,6 +43,17 @@ export default function DashboardPage() {
   const [learningSkills, setLearningSkills] = useState<any[]>([]);
   const [recommendedPeers, setRecommendedPeers] = useState<StudentCardData[]>([]);
   const [completionPercent, setCompletionPercent] = useState<number>(0);
+
+  // Dynamic Metrics State
+  const [activeExchangesCount, setActiveExchangesCount] = useState<number>(0);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState<number>(0);
+  const [completedExchangesCount, setCompletedExchangesCount] = useState<number>(0);
+  const [unreadNotifsCount, setUnreadNotifsCount] = useState<number>(0);
+  const [unreadMsgsCount, setUnreadMsgsCount] = useState<number>(0);
+  const [userRating, setUserRating] = useState<{ avg: number | null; count: number }>({
+    avg: null,
+    count: 0,
+  });
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -50,12 +71,37 @@ export default function DashboardPage() {
             setLearningSkills(userFullProfile.learning_skills);
             setCompletionPercent(userFullProfile.completion_percentage);
 
-            // Fetch Top 3 Dynamic Recommended Peer Matches from Database
+            // 1. Fetch Top 3 Dynamic Recommended Peer Matches
             const discoverRes = await fetchDiscoverStudents(
               { pageSize: 3, sortBy: "best_match" },
               userFullProfile
             );
             setRecommendedPeers(discoverRes.students);
+
+            // 2. Fetch User Exchanges
+            const exchRes = await fetchUserExchanges(user.id);
+            setActiveExchangesCount(exchRes.active.length);
+            setCompletedExchangesCount(exchRes.completed.length);
+
+            // 3. Fetch User Requests
+            const reqRes = await fetchUserRequests(user.id);
+            setPendingRequestsCount(reqRes.incoming.length + reqRes.sent.length);
+
+            // 4. Fetch User Notifications
+            const notifRes = await fetchUserNotifications(user.id);
+            setUnreadNotifsCount(notifRes.filter((n) => !n.is_read).length);
+
+            // 5. Fetch User Conversations
+            const convRes = await fetchUserConversations(user.id);
+            const totalUnreadMsgs = convRes.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+            setUnreadMsgsCount(totalUnreadMsgs);
+
+            // 6. Fetch User Rating Summary
+            const ratingRes = await fetchUserRatingSummary(user.id);
+            setUserRating({
+              avg: ratingRes.averageRating,
+              count: ratingRes.ratingCount,
+            });
           }
         } else {
           // Unauthenticated fallback view for public dashboard preview
@@ -102,6 +148,77 @@ export default function DashboardPage() {
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* Dynamic Dashboard Metrics Summary Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <Card className="border-border shadow-xs bg-card">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 shrink-0">
+              <Repeat className="h-5 w-5" />
+            </div>
+            <div>
+              {loading ? (
+                <Skeleton className="h-5 w-10 mb-1" />
+              ) : (
+                <p className="text-lg font-bold text-foreground">{activeExchangesCount}</p>
+              )}
+              <p className="text-[11px] text-muted-foreground font-medium">Active Exchanges</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border shadow-xs bg-card">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 shrink-0">
+              <GitPullRequest className="h-5 w-5" />
+            </div>
+            <div>
+              {loading ? (
+                <Skeleton className="h-5 w-10 mb-1" />
+              ) : (
+                <p className="text-lg font-bold text-foreground">{pendingRequestsCount}</p>
+              )}
+              <p className="text-[11px] text-muted-foreground font-medium">Pending Requests</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border shadow-xs bg-card">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 shrink-0">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div>
+              {loading ? (
+                <Skeleton className="h-5 w-10 mb-1" />
+              ) : (
+                <p className="text-lg font-bold text-foreground">{completedExchangesCount}</p>
+              )}
+              <p className="text-[11px] text-muted-foreground font-medium">Completed</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border shadow-xs bg-card">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center text-amber-500 shrink-0">
+              <Star className="h-5 w-5 fill-amber-500" />
+            </div>
+            <div>
+              {loading ? (
+                <Skeleton className="h-5 w-12 mb-1" />
+              ) : (
+                <p className="text-lg font-bold text-foreground">
+                  {userRating.avg ? userRating.avg.toFixed(1) : "New"}
+                </p>
+              )}
+              <p className="text-[11px] text-muted-foreground font-medium">
+                {userRating.count > 0 ? `${userRating.count} reviews` : "Peer Rating"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Dynamic Profile Completion Status Card */}
