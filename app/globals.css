@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Brand Indigo (Primary): hsl(238, 83%, 62%) */
+    --primary: 238 83% 62%;
+    --primary-hover: 238 75% 54%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Neutral Colors (Light) */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 238 85% 96%;
+    --accent-foreground: 238 83% 62%;
+
+    --destructive: 346 84% 61%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 238 83% 62%;
+
+    /* Accent Colors */
+    --emerald: 160 84% 39%;
+    --violet: 267 83% 63%;
+    --amber: 38 92% 50%;
+    --rose: 346 84% 61%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Brand Indigo (Primary Dark) */
+    --primary: 238 83% 62%;
+    --primary-hover: 238 75% 54%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Neutral Colors (Dark) */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
+
+    --secondary: 217 19% 27%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 19% 27%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 238 40% 15%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 346 84% 61%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 19% 27%;
+    --input: 217 19% 27%;
+    --ring: 238 83% 62%;
+
+    /* Accent Colors */
+    --emerald: 160 84% 39%;
+    --violet: 267 83% 63%;
+    --amber: 38 92% 50%;
+    --rose: 346 84% 61%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+/* Custom UI Utilities adhering to DESIGN.md */
+.card-hover {
+  @apply transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md;
+}
+
+.focus-ring {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+}

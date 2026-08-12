@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ProfileVisibility {
+  public
+  private
+}
+
+enum SkillLevel {
+  Beginner
+  Intermediate
+  Advanced
+  Expert
+}
+
+model Profile {
+  id                   String               @id @db.Uuid
+  full_name            String
+  username             String               @unique
+  avatar_url           String?
+  university           String?
+  degree               String?
+  semester             String?
+  location             String?
+  bio                  String?
+  experience_level     String?
+  availability         String?
+  profile_visibility   ProfileVisibility    @default(public)
+  onboarding_completed Boolean              @default(false)
+  created_at           DateTime             @default(now()) @db.Timestamptz
+  updated_at           DateTime             @default(now()) @db.Timestamptz
+  teaching_skills      UserTeachingSkill[]
+  learning_skills      UserLearningSkill[]
+
+  @@map("profiles")
+}
+
+model Skill {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String               @unique
+  category             String
+  description          String?
+  icon                 String?
+  created_at           DateTime             @default(now()) @db.Timestamptz
+  teachers             UserTeachingSkill[]
+  learners             UserLearningSkill[]
+
+  @@map("skills")
+}
+
+model UserTeachingSkill {
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String     @db.Uuid
+  skill_id         String     @db.Uuid
+  experience_level SkillLevel
+  created_at       DateTime   @default(now()) @db.Timestamptz
+  user             Profile    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  skill            Skill      @relation(fields: [skill_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, skill_id])
+  @@map("user_teaching_skills")
+}
+
+model UserLearningSkill {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String     @db.Uuid
+  skill_id      String     @db.Uuid
+  desired_level SkillLevel
+  created_at    DateTime   @default(now()) @db.Timestamptz
+  user          Profile    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  skill         Skill      @relation(fields: [skill_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, skill_id])
+  @@map("user_learning_skills")
+}
