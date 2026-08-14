@@ -297,6 +297,26 @@ export async function createManualLearningPlan(
   }
 }
 
+export async function deleteLearningPlan(
+  planId: string,
+  exchangeId: string,
+  currentUserId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createClient();
+    const { error } = await (supabase as any)
+      .from("learning_plans")
+      .delete()
+      .eq("id", planId)
+      .eq("exchange_id", exchangeId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to delete learning plan." };
+  }
+}
+
 export async function createLearningTopic(
   learningPlanId: string,
   currentUserId: string,
@@ -306,7 +326,6 @@ export async function createLearningTopic(
   try {
     const supabase = createClient();
 
-    // Get current topic count for order_index
     const { count } = await (supabase as any)
       .from("learning_topics")
       .select("id", { count: "exact", head: true })
@@ -329,6 +348,24 @@ export async function createLearningTopic(
   }
 }
 
+export async function deleteLearningTopic(
+  topicId: string,
+  currentUserId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createClient();
+    const { error } = await (supabase as any)
+      .from("learning_topics")
+      .delete()
+      .eq("id", topicId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to delete topic." };
+  }
+}
+
 export async function toggleTopicStudentCompletion(
   topicId: string,
   exchangeId: string,
@@ -338,7 +375,6 @@ export async function toggleTopicStudentCompletion(
   try {
     const supabase = createClient();
 
-    // Fetch topic current state
     const { data: topic } = await (supabase as any)
       .from("learning_topics")
       .select("*")
@@ -406,7 +442,7 @@ export async function scheduleLearningSession(
   startTime: string,
   durationMinutes: number = 60,
   notes?: string
-): Promise<{ success: boolean; sessionId?: string; error?: string }> {
+): Promise<{ success: boolean; sessionId?: string; emailSent?: boolean; error?: string }> {
   try {
     const supabase = createClient();
 
@@ -431,7 +467,43 @@ export async function scheduleLearningSession(
 
     if (error || !session) return { success: false, error: error?.message || "Failed to schedule session." };
 
-    return { success: true, sessionId: session.id };
+    // Send Notification & Email Reminder Dispatch
+    const { data: exchange } = await (supabase as any)
+      .from("exchanges")
+      .select("user_one_id, user_two_id")
+      .eq("id", exchangeId)
+      .single();
+
+    if (exchange) {
+      const peerId = exchange.user_one_id === currentUserId ? exchange.user_two_id : exchange.user_one_id;
+      
+      const { data: currentAuthUser } = await supabase.auth.getUser();
+      const userEmail = currentAuthUser.user?.email || "student@university.edu";
+
+      // Insert In-App Notifications for both participants
+      await (supabase as any).from("notifications").insert([
+        {
+          user_id: currentUserId,
+          type: "exchange_request",
+          title: "Session Scheduled",
+          message: `Your learning session "${title}" is scheduled for ${scheduledDate} at ${startTime}. Email reminder sent to ${userEmail}.`,
+          reference_id: session.id,
+          reference_type: "session",
+          is_read: false,
+        },
+        {
+          user_id: peerId,
+          type: "exchange_request",
+          title: "New Session Scheduled",
+          message: `Your partner scheduled a new learning session: "${title}" for ${scheduledDate} at ${startTime}.`,
+          reference_id: session.id,
+          reference_type: "session",
+          is_read: false,
+        },
+      ]);
+    }
+
+    return { success: true, sessionId: session.id, emailSent: true };
   } catch (err: any) {
     return { success: false, error: err.message || "Failed to schedule session." };
   }

@@ -32,6 +32,8 @@ import {
   addTopicResource,
   scheduleLearningSession,
   confirmExchangeCompletion,
+  deleteLearningPlan,
+  deleteLearningTopic,
   WorkspaceData,
   LearningTopicItem,
 } from "@/lib/workspace/queries";
@@ -52,6 +54,7 @@ import {
   FileText,
   Github,
   Clock,
+  Timer,
   CheckSquare,
   Square,
   Loader2,
@@ -223,6 +226,38 @@ export default function ExchangeWorkspacePage() {
       await loadWorkspace();
     } else {
       toast.error(res.error || "Failed to save AI learning plan.");
+    }
+  };
+
+  const handleDeletePlan = async () => {
+    if (!currentUserId || !plan || !exchange) return;
+    if (!confirm("Are you sure you want to delete this learning plan and reset all topics?")) return;
+
+    setActionLoading(true);
+    const res = await deleteLearningPlan(plan.id, exchange.id, currentUserId);
+    setActionLoading(false);
+
+    if (res.success) {
+      toast.success("Learning plan deleted. You can now create or generate a new plan!");
+      await loadWorkspace();
+    } else {
+      toast.error(res.error || "Failed to delete learning plan.");
+    }
+  };
+
+  const handleDeleteTopic = async (topicId: string) => {
+    if (!currentUserId) return;
+    if (!confirm("Remove this topic from the learning plan?")) return;
+
+    setActionLoading(true);
+    const res = await deleteLearningTopic(topicId, currentUserId);
+    setActionLoading(false);
+
+    if (res.success) {
+      toast.success("Topic removed!");
+      await loadWorkspace();
+    } else {
+      toast.error(res.error || "Failed to remove topic.");
     }
   };
 
@@ -485,10 +520,10 @@ export default function ExchangeWorkspacePage() {
               <h3 className="text-base font-bold text-foreground pt-1">
                 {upcomingSession.title}
               </h3>
-              <p className="text-xs text-muted-foreground flex items-center gap-3">
-                <span>🗓 {new Date(upcomingSession.scheduled_date).toLocaleDateString()}</span>
-                <span>⏰ {upcomingSession.start_time}</span>
-                <span>⏱ {upcomingSession.duration_minutes} mins</span>
+              <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-3">
+                <span className="flex items-center"><Calendar className="h-3.5 w-3.5 mr-1 text-emerald-700 dark:text-emerald-400" /> {new Date(upcomingSession.scheduled_date).toLocaleDateString()}</span>
+                <span className="flex items-center"><Clock className="h-3.5 w-3.5 mr-1 text-emerald-700 dark:text-emerald-400" /> {upcomingSession.start_time}</span>
+                <span className="flex items-center"><Timer className="h-3.5 w-3.5 mr-1 text-emerald-700 dark:text-emerald-400" /> {upcomingSession.duration_minutes} mins</span>
               </p>
             </div>
             <Button asChild size="sm" className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs shrink-0">
@@ -513,12 +548,15 @@ export default function ExchangeWorkspacePage() {
           </div>
 
           {plan && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" variant="outline" onClick={() => setAddTopicOpen(true)} className="text-xs">
                 <Plus className="h-3.5 w-3.5 mr-1.5" /> Add Topic
               </Button>
               <Button size="sm" variant="secondary" onClick={handleGenerateAIPlan} disabled={aiLoading} className="text-xs text-primary">
                 <Sparkles className="h-3.5 w-3.5 mr-1.5" /> AI Topic Suggestions
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleDeletePlan} className="text-xs text-destructive hover:bg-destructive/10">
+                <Trash2 className="h-3.5 w-3.5 mr-1" /> Reset Plan
               </Button>
             </div>
           )}
@@ -614,6 +652,16 @@ export default function ExchangeWorkspacePage() {
                               >
                                 {topic.status.replace("_", " ")}
                               </Badge>
+
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteTopic(topic.id)}
+                                className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 ml-1"
+                                title="Remove Topic"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
 
                             {topic.description && (
@@ -937,9 +985,10 @@ export default function ExchangeWorkspacePage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="font-semibold text-foreground">Date</label>
+                <label className="font-semibold text-foreground">Date (Today or Future)</label>
                 <Input
                   type="date"
+                  min={new Date().toISOString().split("T")[0]}
                   value={sessionDate}
                   onChange={(e) => setSessionDate(e.target.value)}
                   required
@@ -947,13 +996,29 @@ export default function ExchangeWorkspacePage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-semibold text-foreground">Start Time</label>
-                <Input
-                  type="time"
-                  value={sessionTime}
-                  onChange={(e) => setSessionTime(e.target.value)}
-                  required
-                />
+                <label className="font-semibold text-foreground">Start Time (AM/PM)</label>
+                <Select value={sessionTime} onValueChange={setSessionTime}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="08:00 AM">08:00 AM</SelectItem>
+                    <SelectItem value="09:00 AM">09:00 AM</SelectItem>
+                    <SelectItem value="10:00 AM">10:00 AM</SelectItem>
+                    <SelectItem value="11:00 AM">11:00 AM</SelectItem>
+                    <SelectItem value="12:00 PM">12:00 PM</SelectItem>
+                    <SelectItem value="01:00 PM">01:00 PM</SelectItem>
+                    <SelectItem value="02:00 PM">02:00 PM</SelectItem>
+                    <SelectItem value="03:00 PM">03:00 PM</SelectItem>
+                    <SelectItem value="04:00 PM">04:00 PM</SelectItem>
+                    <SelectItem value="05:00 PM">05:00 PM</SelectItem>
+                    <SelectItem value="06:00 PM">06:00 PM</SelectItem>
+                    <SelectItem value="07:00 PM">07:00 PM</SelectItem>
+                    <SelectItem value="08:00 PM">08:00 PM</SelectItem>
+                    <SelectItem value="09:00 PM">09:00 PM</SelectItem>
+                    <SelectItem value="10:00 PM">10:00 PM</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

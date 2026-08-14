@@ -272,8 +272,8 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      <Badge variant="teaching" className="text-[11px] font-semibold capitalize">
-                        ● Active Workspace
+                      <Badge variant="teaching" className="text-[11px] font-semibold capitalize flex items-center">
+                        <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse" /> Active Workspace
                       </Badge>
                     </div>
                   </CardHeader>

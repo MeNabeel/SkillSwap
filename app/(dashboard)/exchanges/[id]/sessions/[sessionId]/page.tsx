@@ -149,9 +149,10 @@ export default function SessionDetailPage() {
 
         <Badge
           variant={session.status === "COMPLETED" ? "teaching" : "secondary"}
-          className="text-xs font-semibold capitalize px-3 py-1"
+          className="text-xs font-semibold capitalize px-3 py-1 flex items-center"
         >
-          ● {session.status}
+          <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
+          {session.status}
         </Badge>
       </div>
 

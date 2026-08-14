@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { FloatingAIBot } from "@/components/ai/FloatingAIBot";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -324,6 +325,9 @@ export function AppShell({ children, userProfile }: AppShellProps) {
           {children}
         </main>
       </div>
+
+      {/* Global Floating AI Assistant Button on All Pages */}
+      <FloatingAIBot />
     </div>
   );
 }
