@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -129,9 +130,13 @@ export function AppShell({ children, userProfile }: AppShellProps) {
         <div className="space-y-6">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2.5 px-3 py-2">
-            <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-sm">
-              <Sparkles className="h-5 w-5" />
-            </div>
+            <Image
+              src="/logo.png"
+              alt="SkillSwap Logo"
+              width={36}
+              height={36}
+              className="h-9 w-auto object-contain shrink-0"
+            />
             <div>
               <span className="font-bold text-lg text-foreground tracking-tight block leading-none">
                 SkillSwap
@@ -233,10 +238,14 @@ export function AppShell({ children, userProfile }: AppShellProps) {
               </SheetTrigger>
               <SheetContent side="left" className="w-72 p-4">
                 <div className="space-y-6">
-                  <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-2">
-                    <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
-                      <Sparkles className="h-4 w-4" />
-                    </div>
+                  <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="flex items-center gap-2.5 px-2">
+                    <Image
+                      src="/logo.png"
+                      alt="SkillSwap Logo"
+                      width={32}
+                      height={32}
+                      className="h-8 w-auto object-contain shrink-0"
+                    />
                     <span className="font-bold text-base text-foreground">SkillSwap</span>
                   </Link>
                   <nav className="space-y-1">

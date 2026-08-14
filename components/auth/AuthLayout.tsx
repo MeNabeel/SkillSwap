@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import Image from "next/image";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -12,10 +12,15 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link href="/" className="inline-flex items-center gap-2 mb-4">
-          <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-md">
-            <Sparkles className="h-6 w-6" />
-          </div>
+        <Link href="/" className="inline-flex items-center gap-3 mb-4 group">
+          <Image
+            src="/logo.png"
+            alt="SkillSwap Logo"
+            width={44}
+            height={44}
+            className="h-11 w-auto object-contain transition-transform group-hover:scale-105"
+            priority
+          />
           <span className="font-bold text-2xl tracking-tight text-foreground">
             SkillSwap
           </span>

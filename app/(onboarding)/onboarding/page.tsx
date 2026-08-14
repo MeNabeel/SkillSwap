@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { profileSchema, ProfileValues } from "@/lib/validations/profile";
@@ -211,10 +212,15 @@ export default function OnboardingPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-2xl">
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 mb-3">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-md">
-              <Sparkles className="h-6 w-6" />
-            </div>
+          <div className="inline-flex items-center gap-3 mb-3">
+            <Image
+              src="/logo.png"
+              alt="SkillSwap Logo"
+              width={40}
+              height={40}
+              className="h-10 w-auto object-contain"
+              priority
+            />
             <span className="font-bold text-2xl tracking-tight text-foreground">
               SkillSwap
             </span>
