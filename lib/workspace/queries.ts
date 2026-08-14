@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { sendSessionScheduledEmail } from "@/lib/email/resend";
 
 export interface TopicResourceItem {
   id: string;
@@ -486,7 +487,7 @@ export async function scheduleLearningSession(
           user_id: currentUserId,
           type: "exchange_request",
           title: "Session Scheduled",
-          message: `Your learning session "${title}" is scheduled for ${scheduledDate} at ${startTime}. Email reminder sent to ${userEmail}.`,
+          message: `Your learning session "${title}" is scheduled for ${scheduledDate} at ${startTime}. Email notification sent to ${userEmail}.`,
           reference_id: session.id,
           reference_type: "session",
           is_read: false,
@@ -501,6 +502,20 @@ export async function scheduleLearningSession(
           is_read: false,
         },
       ]);
+
+      // Trigger Resend email dispatch
+      if (currentAuthUser.user?.email) {
+        await sendSessionScheduledEmail({
+          recipientEmail: currentAuthUser.user.email,
+          recipientName: "Student",
+          sessionTitle: title,
+          scheduledDate,
+          startTime,
+          durationMinutes,
+          jitsiRoomUrl: `https://meet.jit.si/${cleanRoomName}`,
+          partnerName: "Peer Exchange Partner",
+        });
+      }
     }
 
     return { success: true, sessionId: session.id, emailSent: true };
