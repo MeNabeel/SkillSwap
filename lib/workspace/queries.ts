@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/client";
-import { sendSessionScheduledEmail } from "@/lib/email/resend";
 
 export interface TopicResourceItem {
   id: string;
@@ -503,18 +502,20 @@ export async function scheduleLearningSession(
         },
       ]);
 
-      // Trigger Resend email dispatch
-      if (currentAuthUser.user?.email) {
-        await sendSessionScheduledEmail({
-          recipientEmail: currentAuthUser.user.email,
-          recipientName: "Student",
-          sessionTitle: title,
-          scheduledDate,
-          startTime,
-          durationMinutes,
-          jitsiRoomUrl: `https://meet.jit.si/${cleanRoomName}`,
-          partnerName: "Peer Exchange Partner",
-        });
+      // Trigger Resend email dispatch via server API route
+      if (typeof window !== "undefined") {
+        fetch("/api/notifications/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: session.id,
+            exchangeId,
+            title,
+            scheduledDate,
+            startTime,
+            durationMinutes,
+          }),
+        }).catch((err) => console.error("Session email dispatch error:", err));
       }
     }
 
