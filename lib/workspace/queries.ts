@@ -72,12 +72,12 @@ export async function fetchWorkspaceData(
   try {
     const supabase = createClient();
 
+    const selectQuery = "*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*)";
+
     // 1. Query exchange record by id OR by request_id
     let { data: exchange } = await (supabase as any)
       .from("exchanges")
-      .select(
-        "*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*), conversation:conversations(id)"
-      )
+      .select(selectQuery)
       .eq("id", exchangeId)
       .maybeSingle();
 
@@ -85,9 +85,7 @@ export async function fetchWorkspaceData(
       // Lookup by request_id
       const { data: exchByReq } = await (supabase as any)
         .from("exchanges")
-        .select(
-          "*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*), conversation:conversations(id)"
-        )
+        .select(selectQuery)
         .eq("request_id", exchangeId)
         .maybeSingle();
 
@@ -131,9 +129,7 @@ export async function fetchWorkspaceData(
 
             const { data: fullNewExch } = await (supabase as any)
               .from("exchanges")
-              .select(
-                "*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*), conversation:conversations(id)"
-              )
+              .select(selectQuery)
               .eq("id", newExch.id)
               .single();
 
@@ -156,7 +152,7 @@ export async function fetchWorkspaceData(
     const { data: rating } = await (supabase as any)
       .from("ratings")
       .select("id")
-      .eq("exchange_id", exchangeId)
+      .eq("exchange_id", exchange.id)
       .eq("reviewer_id", currentUserId)
       .maybeSingle();
 
@@ -164,7 +160,7 @@ export async function fetchWorkspaceData(
     const { data: planData } = await (supabase as any)
       .from("learning_plans")
       .select("*")
-      .eq("exchange_id", exchangeId)
+      .eq("exchange_id", exchange.id)
       .maybeSingle();
 
     let plan: LearningPlanItem | null = null;
@@ -223,7 +219,7 @@ export async function fetchWorkspaceData(
     const { data: sessionsData } = await (supabase as any)
       .from("sessions")
       .select("*")
-      .eq("exchange_id", exchangeId)
+      .eq("exchange_id", exchange.id)
       .order("scheduled_date", { ascending: true });
 
     const sessions: LearningSessionItem[] = sessionsData || [];

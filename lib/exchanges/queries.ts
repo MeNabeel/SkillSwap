@@ -78,7 +78,7 @@ export async function fetchUserExchanges(userId: string): Promise<{
     // 2. Query exchanges for current user
     const { data, error } = await (supabase as any)
       .from("exchanges")
-      .select("*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*), conversation:conversations(id)")
+      .select("*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*)")
       .or(`user_one_id.eq.${userId},user_two_id.eq.${userId}`)
       .order("created_at", { ascending: false });
 
@@ -98,12 +98,10 @@ export async function fetchUserExchanges(userId: string): Promise<{
 
     data.forEach((item: any) => {
       const peerUser = item.user_one_id === userId ? item.user_two : item.user_one;
-      const conversationId = item.conversation?.[0]?.id || item.conversation?.id;
 
       const formatted: ExchangeItem = {
         ...item,
         peerUser,
-        conversation_id: conversationId,
         hasRated: ratedExchangeIds.has(item.id),
       };
 
@@ -122,16 +120,18 @@ export async function fetchUserExchanges(userId: string): Promise<{
 export async function fetchExchangeById(exchangeId: string, userId: string): Promise<ExchangeItem | null> {
   try {
     const supabase = createClient();
+    const selectQuery = "*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*)";
+
     let { data } = await (supabase as any)
       .from("exchanges")
-      .select("*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*), conversation:conversations(id)")
+      .select(selectQuery)
       .eq("id", exchangeId)
       .maybeSingle();
 
     if (!data) {
       const { data: dataByReq } = await (supabase as any)
         .from("exchanges")
-        .select("*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*), conversation:conversations(id)")
+        .select(selectQuery)
         .eq("request_id", exchangeId)
         .maybeSingle();
       data = dataByReq;
@@ -144,19 +144,17 @@ export async function fetchExchangeById(exchangeId: string, userId: string): Pro
     }
 
     const peerUser = data.user_one_id === userId ? data.user_two : data.user_one;
-    const conversationId = data.conversation?.[0]?.id || data.conversation?.id;
 
     const { data: rating } = await (supabase as any)
       .from("ratings")
       .select("id")
-      .eq("exchange_id", exchangeId)
+      .eq("exchange_id", data.id)
       .eq("reviewer_id", userId)
       .maybeSingle();
 
     return {
       ...data,
       peerUser,
-      conversation_id: conversationId,
       hasRated: !!rating,
     };
   } catch (err) {
