@@ -72,16 +72,78 @@ export async function fetchWorkspaceData(
   try {
     const supabase = createClient();
 
-    // 1. Query exchange record with participant & skill joins
-    const { data: exchange, error: exchError } = await (supabase as any)
+    // 1. Query exchange record by id OR by request_id
+    let { data: exchange } = await (supabase as any)
       .from("exchanges")
       .select(
         "*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*), conversation:conversations(id)"
       )
       .eq("id", exchangeId)
-      .single();
+      .maybeSingle();
 
-    if (exchError || !exchange) return null;
+    if (!exchange) {
+      // Lookup by request_id
+      const { data: exchByReq } = await (supabase as any)
+        .from("exchanges")
+        .select(
+          "*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*), conversation:conversations(id)"
+        )
+        .eq("request_id", exchangeId)
+        .maybeSingle();
+
+      if (exchByReq) {
+        exchange = exchByReq;
+      } else {
+        // Auto-heal: If exchangeId is a request_id for an accepted request, create exchange record now
+        const { data: req } = await (supabase as any)
+          .from("exchange_requests")
+          .select("*")
+          .eq("id", exchangeId)
+          .maybeSingle();
+
+        if (req && (req.sender_id === currentUserId || req.receiver_id === currentUserId)) {
+          const { data: newExch } = await (supabase as any)
+            .from("exchanges")
+            .insert({
+              request_id: req.id,
+              user_one_id: req.sender_id,
+              user_two_id: req.receiver_id,
+              teaching_skill_id: req.offered_skill_id,
+              learning_skill_id: req.requested_skill_id,
+              status: "active",
+            })
+            .select()
+            .single();
+
+          if (newExch) {
+            const { data: conv } = await (supabase as any)
+              .from("conversations")
+              .insert({ exchange_id: newExch.id })
+              .select()
+              .single();
+
+            if (conv) {
+              await (supabase as any).from("conversation_members").insert([
+                { conversation_id: conv.id, user_id: req.sender_id },
+                { conversation_id: conv.id, user_id: req.receiver_id },
+              ]);
+            }
+
+            const { data: fullNewExch } = await (supabase as any)
+              .from("exchanges")
+              .select(
+                "*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*), conversation:conversations(id)"
+              )
+              .eq("id", newExch.id)
+              .single();
+
+            exchange = fullNewExch;
+          }
+        }
+      }
+    }
+
+    if (!exchange) return null;
 
     if (exchange.user_one_id !== currentUserId && exchange.user_two_id !== currentUserId) {
       return null; // Security RLS check

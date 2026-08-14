@@ -122,13 +122,22 @@ export async function fetchUserExchanges(userId: string): Promise<{
 export async function fetchExchangeById(exchangeId: string, userId: string): Promise<ExchangeItem | null> {
   try {
     const supabase = createClient();
-    const { data, error } = await (supabase as any)
+    let { data } = await (supabase as any)
       .from("exchanges")
       .select("*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*), conversation:conversations(id)")
       .eq("id", exchangeId)
-      .single();
+      .maybeSingle();
 
-    if (error || !data) return null;
+    if (!data) {
+      const { data: dataByReq } = await (supabase as any)
+        .from("exchanges")
+        .select("*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*), conversation:conversations(id)")
+        .eq("request_id", exchangeId)
+        .maybeSingle();
+      data = dataByReq;
+    }
+
+    if (!data) return null;
 
     if (data.user_one_id !== userId && data.user_two_id !== userId) {
       return null;

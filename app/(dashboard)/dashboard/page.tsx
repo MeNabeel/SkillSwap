@@ -7,16 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SkillBadge } from "@/components/skills/SkillBadge";
 import { StudentCard } from "@/components/discover/StudentCard";
 import { fetchDiscoverStudents } from "@/lib/discover/queries";
 import { fetchUserProfile } from "@/lib/profiles/queries";
-import { fetchUserExchanges } from "@/lib/exchanges/queries";
+import { fetchUserExchanges, ExchangeItem } from "@/lib/exchanges/queries";
 import { fetchUserRequests } from "@/lib/requests/queries";
-import { fetchUserNotifications } from "@/lib/notifications/queries";
-import { fetchUserConversations } from "@/lib/chat/queries";
 import { fetchUserRatingSummary } from "@/lib/ratings/queries";
 import { StudentCardData } from "@/lib/discover/types";
+import { getInitials } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import {
   Compass,
@@ -31,6 +31,7 @@ import {
   Repeat,
   GitPullRequest,
   Star,
+  MessageSquare,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -39,6 +40,7 @@ export default function DashboardPage() {
   const [teachingSkills, setTeachingSkills] = useState<any[]>([]);
   const [learningSkills, setLearningSkills] = useState<any[]>([]);
   const [recommendedPeers, setRecommendedPeers] = useState<StudentCardData[]>([]);
+  const [activeExchangesList, setActiveExchangesList] = useState<ExchangeItem[]>([]);
   const [completionPercent, setCompletionPercent] = useState<number>(0);
 
   // Dynamic Metrics State
@@ -72,8 +74,9 @@ export default function DashboardPage() {
             );
             setRecommendedPeers(discoverRes.students);
 
-            // 2. Fetch User Exchanges
+            // 2. Fetch User Active Exchanges
             const exchRes = await fetchUserExchanges(user.id);
+            setActiveExchangesList(exchRes.active);
             setActiveExchangesCount(exchRes.active.length);
             setCompletedExchangesCount(exchRes.completed.length);
 
@@ -227,6 +230,99 @@ export default function DashboardPage() {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Active Skill Exchanges & Accepted Requests Section on Dashboard */}
+      {activeExchangesList.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Repeat className="h-5 w-5 text-primary" /> Active Skill Exchanges
+            </h2>
+            <Button variant="ghost" size="sm" asChild className="text-xs text-primary">
+              <Link href="/exchanges">View All Exchanges</Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activeExchangesList.map((item) => {
+              const peerName = item.peerUser?.full_name || "Student Partner";
+              const peerUsername = item.peerUser?.username || "student";
+
+              return (
+                <Card key={item.id} className="border-border shadow-xs card-hover flex flex-col justify-between">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-11 w-11 border border-border shrink-0">
+                          <AvatarImage src={item.peerUser?.avatar_url || ""} alt={peerName} />
+                          <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                            {getInitials(peerName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-base">
+                            <Link href={`/students/${item.peerUser?.id}`} className="hover:text-primary transition-colors">
+                              {peerName}
+                            </Link>
+                          </CardTitle>
+                          <CardDescription className="text-xs">
+                            @{peerUsername} • {item.peerUser?.university || "University N/A"}
+                          </CardDescription>
+                        </div>
+                      </div>
+
+                      <Badge variant="teaching" className="text-[11px] font-semibold capitalize">
+                        ● Active Workspace
+                      </Badge>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="space-y-3 text-xs">
+                    <div className="grid grid-cols-2 gap-2 bg-muted/40 p-2.5 rounded-xl border border-border/50">
+                      <div>
+                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block mb-1">
+                          Teaching:
+                        </span>
+                        <SkillBadge
+                          name={item.teaching_skill?.name || "Skill"}
+                          category={item.teaching_skill?.category}
+                          level="Standard"
+                          type="teaching"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider block mb-1">
+                          Learning:
+                        </span>
+                        <SkillBadge
+                          name={item.learning_skill?.name || "Skill"}
+                          category={item.learning_skill?.category}
+                          level="Standard"
+                          type="learning"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="pt-3 border-t border-border flex items-center gap-2">
+                    <Button asChild size="sm" className="text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold flex-1 shadow-xs border-none">
+                      <Link href={`/exchanges/${item.id}`}>
+                        <BookOpen className="h-3.5 w-3.5 mr-1.5" /> Open Workspace
+                      </Link>
+                    </Button>
+
+                    <Button asChild size="sm" variant="outline" className="text-xs flex-1">
+                      <Link href="/messages">
+                        <MessageSquare className="h-3.5 w-3.5 mr-1.5 text-primary" /> Open Chat
+                      </Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* Quick Actions Grid */}
