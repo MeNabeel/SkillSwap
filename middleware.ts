@@ -44,28 +44,55 @@ export async function middleware(request: NextRequest) {
     '/messages',
     '/notifications',
     '/settings',
-    '/onboarding',
     '/ai-assistant',
+    '/discover',
   ];
 
   const authPaths = ['/login', '/signup'];
 
   const isProtectedPath = protectedPaths.some((prefix) => path.startsWith(prefix));
   const isAuthPath = authPaths.some((prefix) => path === prefix);
+  const isOnboardingPath = path === '/onboarding';
 
-  // Unauthenticated user attempting to access protected route
-  if (!user && isProtectedPath) {
+  // 1. Unauthenticated user attempting to access protected route or onboarding
+  if (!user && (isProtectedPath || isOnboardingPath)) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirectTo', path);
     return NextResponse.redirect(url);
   }
 
-  // Authenticated user attempting to access auth route (login/signup)
+  // 2. Authenticated user attempting to access auth route (login/signup)
   if (user && isAuthPath) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
+  }
+
+  // 3. Authenticated user onboarding check
+  if (user) {
+    // Fetch user profile onboarding status
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const isOnboardingComplete = Boolean(profile && profile.onboarding_completed);
+
+    // Incomplete profile accessing protected path -> redirect to /onboarding
+    if (isProtectedPath && !isOnboardingComplete) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/onboarding';
+      return NextResponse.redirect(url);
+    }
+
+    // Complete profile accessing /onboarding -> redirect to /dashboard
+    if (isOnboardingPath && isOnboardingComplete) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

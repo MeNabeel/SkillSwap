@@ -177,8 +177,8 @@ export default function AIAssistantPage() {
                 <CardTitle className="text-xl font-bold text-foreground">
                   SkillSwap AI Assistant
                 </CardTitle>
-                <Badge variant="secondary" className="bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 border border-violet-200/50 text-[11px] font-medium">
-                  <Sparkles className="h-3 w-3 mr-1 text-violet-500 inline" /> Powered by OpenAI
+                <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/50 text-[11px] font-medium">
+                  <Sparkles className="h-3.5 w-3.5 mr-1 text-emerald-600 inline" /> Powered by Google Gemini
                 </Badge>
               </div>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">

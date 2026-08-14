@@ -117,8 +117,9 @@ export function AppShell({ children, userProfile }: AppShellProps) {
     }
   };
 
-  const displayName = userProfile?.full_name || "Student User";
-  const displayUsername = userProfile?.username ? `@${userProfile.username}` : "@student";
+  const displayName = userProfile?.full_name || "SkillSwap Student";
+  const rawUsername = userProfile?.username || (userProfile?.full_name ? userProfile.full_name.toLowerCase().replace(/[^a-z0-9]/g, "") : "user");
+  const displayUsername = rawUsername.startsWith("@") ? rawUsername : `@${rawUsername}`;
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row font-sans">

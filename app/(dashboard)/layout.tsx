@@ -22,9 +22,20 @@ export default async function DashboardLayout({
         .from("profiles")
         .select("*")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
-      profile = data;
+      if (data) {
+        profile = data;
+      } else {
+        const metaName = user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
+        const emailHandle = user.email?.split("@")[0] || "user";
+        profile = {
+          id: user.id,
+          full_name: metaName,
+          username: emailHandle,
+          avatar_url: user.user_metadata?.avatar_url || null,
+        };
+      }
     }
   } catch (err) {
     console.error("Dashboard layout auth check:", err);

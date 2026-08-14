@@ -31,14 +31,11 @@ import {
   Repeat,
   GitPullRequest,
   Star,
-  MessageSquare,
-  Bell,
 } from "lucide-react";
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
-  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const [teachingSkills, setTeachingSkills] = useState<any[]>([]);
   const [learningSkills, setLearningSkills] = useState<any[]>([]);
   const [recommendedPeers, setRecommendedPeers] = useState<StudentCardData[]>([]);
@@ -48,8 +45,6 @@ export default function DashboardPage() {
   const [activeExchangesCount, setActiveExchangesCount] = useState<number>(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState<number>(0);
   const [completedExchangesCount, setCompletedExchangesCount] = useState<number>(0);
-  const [unreadNotifsCount, setUnreadNotifsCount] = useState<number>(0);
-  const [unreadMsgsCount, setUnreadMsgsCount] = useState<number>(0);
   const [userRating, setUserRating] = useState<{ avg: number | null; count: number }>({
     avg: null,
     count: 0,
@@ -66,7 +61,6 @@ export default function DashboardPage() {
 
           if (userFullProfile) {
             setProfile(userFullProfile);
-            setCurrentUserProfile(userFullProfile);
             setTeachingSkills(userFullProfile.teaching_skills);
             setLearningSkills(userFullProfile.learning_skills);
             setCompletionPercent(userFullProfile.completion_percentage);
@@ -87,16 +81,7 @@ export default function DashboardPage() {
             const reqRes = await fetchUserRequests(user.id);
             setPendingRequestsCount(reqRes.incoming.length + reqRes.sent.length);
 
-            // 4. Fetch User Notifications
-            const notifRes = await fetchUserNotifications(user.id);
-            setUnreadNotifsCount(notifRes.filter((n) => !n.is_read).length);
-
-            // 5. Fetch User Conversations
-            const convRes = await fetchUserConversations(user.id);
-            const totalUnreadMsgs = convRes.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
-            setUnreadMsgsCount(totalUnreadMsgs);
-
-            // 6. Fetch User Rating Summary
+            // 4. Fetch User Rating Summary
             const ratingRes = await fetchUserRatingSummary(user.id);
             setUserRating({
               avg: ratingRes.averageRating,
@@ -122,21 +107,21 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-300 max-w-7xl mx-auto font-sans">
-      {/* Welcome Banner Card */}
-      <div className="rounded-2xl bg-gradient-to-r from-primary via-indigo-600 to-indigo-700 p-6 sm:p-8 text-primary-foreground shadow-md relative overflow-hidden">
+      {/* Welcome Banner Card - Deep Emerald & Warm Amber Styling */}
+      <div className="rounded-2xl bg-gradient-to-r from-teal-900 via-emerald-800 to-teal-950 p-6 sm:p-8 text-white shadow-md relative overflow-hidden border border-emerald-700/50">
         <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur text-xs font-medium mb-3">
-            <Sparkles className="h-3.5 w-3.5 text-amber-300" /> Skill Exchange Network
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur text-xs font-medium mb-3 text-amber-200 border border-amber-300/20">
+            <Sparkles className="h-3.5 w-3.5 text-amber-400" /> Skill Exchange Network
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
             Welcome back, {userName}!
           </h1>
-          <p className="mt-2 text-sm text-primary-foreground/80 leading-relaxed">
-            Ready to exchange knowledge today? Find student matches, share your expertise in programming or design, and learn new skills democratically.
+          <p className="mt-2 text-sm text-emerald-100/90 leading-relaxed">
+            Ready to exchange knowledge today? Find student matches, share your expertise in programming, academics, or design, and learn new skills democratically.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button asChild size="sm" variant="secondary" className="font-semibold shadow-sm">
+            <Button asChild size="sm" className="bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm border-none">
               <Link href="/discover">
                 <Compass className="h-4 w-4 mr-2" /> Discover Students
               </Link>
@@ -154,7 +139,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className="border-border shadow-xs bg-card">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 shrink-0">
+            <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-700 shrink-0">
               <Repeat className="h-5 w-5" />
             </div>
             <div>
@@ -186,7 +171,7 @@ export default function DashboardPage() {
 
         <Card className="border-border shadow-xs bg-card">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 shrink-0">
+            <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-700 shrink-0">
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <div>
@@ -203,7 +188,7 @@ export default function DashboardPage() {
         <Card className="border-border shadow-xs bg-card">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center text-amber-500 shrink-0">
-              <Star className="h-5 w-5 fill-amber-500" />
+              <Star className="h-5 w-5 fill-amber-500 text-amber-500" />
             </div>
             <div>
               {loading ? (
@@ -252,7 +237,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card className="card-hover border-border">
             <CardHeader className="pb-3">
-              <div className="h-9 w-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-primary mb-1">
+              <div className="h-9 w-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-primary mb-1">
                 <Compass className="h-5 w-5" />
               </div>
               <CardTitle className="text-base">Discover Peers</CardTitle>
@@ -271,7 +256,7 @@ export default function DashboardPage() {
 
           <Card className="card-hover border-border">
             <CardHeader className="pb-3">
-              <div className="h-9 w-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 mb-1">
+              <div className="h-9 w-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-700 mb-1">
                 <Edit className="h-5 w-5" />
               </div>
               <CardTitle className="text-base">Edit Profile</CardTitle>
@@ -290,7 +275,7 @@ export default function DashboardPage() {
 
           <Card className="card-hover border-border">
             <CardHeader className="pb-3">
-              <div className="h-9 w-9 rounded-xl bg-violet-50 dark:bg-violet-950/50 flex items-center justify-center text-violet-600 mb-1">
+              <div className="h-9 w-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 mb-1">
                 <Plus className="h-5 w-5" />
               </div>
               <CardTitle className="text-base">Add New Skill</CardTitle>
@@ -315,8 +300,8 @@ export default function DashboardPage() {
         <Card className="shadow-sm border-border">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
-                <CheckCircle2 className="h-5 w-5" /> Skills You Teach
+              <CardTitle className="text-base flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" /> Skills You Teach
               </CardTitle>
               <Badge variant="teaching">
                 {teachingSkills.length} active
@@ -356,8 +341,8 @@ export default function DashboardPage() {
         <Card className="shadow-sm border-border">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
-                <BookOpen className="h-5 w-5" /> Skills You Want to Learn
+              <CardTitle className="text-base flex items-center gap-2 text-amber-800 dark:text-amber-300">
+                <BookOpen className="h-5 w-5 text-amber-600" /> Skills You Want to Learn
               </CardTitle>
               <Badge variant="learning">
                 {learningSkills.length} goals
@@ -398,7 +383,7 @@ export default function DashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-violet-600" /> Recommended Peer Matches
+            <Sparkles className="h-5 w-5 text-amber-600" /> Recommended Peer Matches
           </h2>
           <Button variant="ghost" size="sm" asChild className="text-xs text-primary">
             <Link href="/discover">View All Matches</Link>
