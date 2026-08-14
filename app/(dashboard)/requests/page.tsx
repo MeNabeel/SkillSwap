@@ -243,9 +243,18 @@ export default function RequestsPage() {
           )}
 
           {item.status === "accepted" && (
-            <Button asChild size="sm" variant="outline" className="text-xs">
-              <Link href="/exchanges">View Active Exchanges</Link>
-            </Button>
+            <div className="flex items-center gap-2 w-full justify-end">
+              <Button asChild size="sm" className="text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-xs border-none">
+                <Link href={`/exchanges/${(item as any).exchange_id || item.id}`}>
+                  <BookOpen className="h-3.5 w-3.5 mr-1" /> Open Workspace
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="text-xs">
+                <Link href="/messages">
+                  <MessageSquare className="h-3.5 w-3.5 mr-1 text-primary" /> Message Partner
+                </Link>
+              </Button>
+            </div>
           )}
         </CardFooter>
       </Card>

@@ -27,6 +27,55 @@ export async function fetchUserExchanges(userId: string): Promise<{
 }> {
   try {
     const supabase = createClient();
+
+    // 1. Auto-heal check for any accepted requests missing exchange records
+    const { data: acceptedRequests } = await (supabase as any)
+      .from("exchange_requests")
+      .select("*")
+      .eq("status", "accepted")
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
+
+    if (acceptedRequests && acceptedRequests.length > 0) {
+      for (const req of acceptedRequests) {
+        const { data: existing } = await (supabase as any)
+          .from("exchanges")
+          .select("id")
+          .eq("request_id", req.id)
+          .maybeSingle();
+
+        if (!existing) {
+          const { data: newExch } = await (supabase as any)
+            .from("exchanges")
+            .insert({
+              request_id: req.id,
+              user_one_id: req.sender_id,
+              user_two_id: req.receiver_id,
+              teaching_skill_id: req.offered_skill_id,
+              learning_skill_id: req.requested_skill_id,
+              status: "active",
+            })
+            .select()
+            .single();
+
+          if (newExch) {
+            const { data: conv } = await (supabase as any)
+              .from("conversations")
+              .insert({ exchange_id: newExch.id })
+              .select()
+              .single();
+
+            if (conv) {
+              await (supabase as any).from("conversation_members").insert([
+                { conversation_id: conv.id, user_id: req.sender_id },
+                { conversation_id: conv.id, user_id: req.receiver_id },
+              ]);
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Query exchanges for current user
     const { data, error } = await (supabase as any)
       .from("exchanges")
       .select("*, user_one:profiles!exchanges_user_one_id_fkey(*), user_two:profiles!exchanges_user_two_id_fkey(*), teaching_skill:skills!exchanges_teaching_skill_id_fkey(*), learning_skill:skills!exchanges_learning_skill_id_fkey(*), conversation:conversations(id)")
@@ -93,7 +142,7 @@ export async function fetchExchangeById(exchangeId: string, userId: string): Pro
       .select("id")
       .eq("exchange_id", exchangeId)
       .eq("reviewer_id", userId)
-      .single();
+      .maybeSingle();
 
     return {
       ...data,
