@@ -50,6 +50,7 @@ interface AppShellProps {
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Discover", href: "/discover", icon: Compass },
+  { name: "AI Assistant", href: "/ai-assistant", icon: Sparkles },
   { name: "Requests", href: "/requests", icon: GitPullRequest },
   { name: "Exchanges", href: "/exchanges", icon: Repeat },
   { name: "Messages", href: "/messages", icon: MessageCircle },

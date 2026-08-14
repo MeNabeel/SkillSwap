@@ -45,6 +45,7 @@ export async function middleware(request: NextRequest) {
     '/notifications',
     '/settings',
     '/onboarding',
+    '/ai-assistant',
   ];
 
   const authPaths = ['/login', '/signup'];
