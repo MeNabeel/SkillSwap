@@ -32,6 +32,19 @@ async function runMigrations() {
     await client.connect();
     console.log("Connected successfully!");
 
+    // Create migrations tracking table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.schema_migrations (
+        version TEXT PRIMARY KEY,
+        executed_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    const { rows: executedRows } = await client.query(
+      `SELECT version FROM public.schema_migrations`
+    );
+    const executedVersions = new Set(executedRows.map((r) => r.version));
+
     const migrationsDir = path.resolve(process.cwd(), "supabase/migrations");
     const migrationFiles = fs
       .readdirSync(migrationsDir)
@@ -41,15 +54,40 @@ async function runMigrations() {
     console.log(`Found ${migrationFiles.length} SQL migration files:`, migrationFiles);
 
     for (const file of migrationFiles) {
+      if (executedVersions.has(file)) {
+        console.log(`Skipping already executed migration: ${file}`);
+        continue;
+      }
+
       console.log(`Executing migration: ${file}...`);
       const filePath = path.join(migrationsDir, file);
       const sql = fs.readFileSync(filePath, "utf-8");
 
-      await client.query(sql);
-      console.log(`Successfully executed: ${file}`);
+      try {
+        await client.query(sql);
+        await client.query(
+          `INSERT INTO public.schema_migrations (version) VALUES ($1) ON CONFLICT DO NOTHING`,
+          [file]
+        );
+        console.log(`Successfully executed: ${file}`);
+      } catch (migrationErr) {
+        // If policy or table already exists error, record as executed and proceed
+        if (
+          migrationErr.code === "42710" || // duplicate_object (policy/type already exists)
+          migrationErr.message.includes("already exists")
+        ) {
+          console.warn(`Object in ${file} already exists, marking as executed.`);
+          await client.query(
+            `INSERT INTO public.schema_migrations (version) VALUES ($1) ON CONFLICT DO NOTHING`,
+            [file]
+          );
+        } else {
+          throw migrationErr;
+        }
+      }
     }
 
-    console.log("\nALL DATABASE MIGRATIONS EXECUTED SUCCESSFULLY!");
+    console.log("\nALL DATABASE MIGRATIONS PROCESSED SUCCESSFULLY!");
   } catch (err) {
     console.error("Migration error:", err.message || err);
     process.exit(1);

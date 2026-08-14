@@ -138,7 +138,10 @@ export async function fetchUserRequests(userId: string): Promise<{
   }
 }
 
-export async function acceptExchangeRequest(requestId: string, currentUserId: string): Promise<{ success: boolean; error?: string; exchangeId?: string }> {
+export async function acceptExchangeRequest(
+  requestId: string,
+  currentUserId: string
+): Promise<{ success: boolean; error?: string; exchangeId?: string }> {
   try {
     const supabase = createClient();
 
@@ -162,59 +165,71 @@ export async function acceptExchangeRequest(requestId: string, currentUserId: st
       .update({ status: "accepted", updated_at: new Date().toISOString() })
       .eq("id", requestId);
 
-    // Create Exchange Record
-    const { data: exchange, error: exchErr } = await (supabase as any)
+    // Check if exchange already exists for this request (Idempotency)
+    const { data: existingExch } = await (supabase as any)
       .from("exchanges")
-      .insert({
-        request_id: request.id,
-        user_one_id: request.sender_id,
-        user_two_id: request.receiver_id,
-        teaching_skill_id: request.offered_skill_id,
-        learning_skill_id: request.requested_skill_id,
-        status: "active",
-      })
-      .select()
-      .single();
+      .select("id")
+      .eq("request_id", request.id)
+      .maybeSingle();
 
-    if (exchErr) throw exchErr;
+    let exchangeId = existingExch?.id;
 
-    // Create Conversation Record
-    const { data: conv, error: convErr } = await (supabase as any)
-      .from("conversations")
-      .insert({
-        exchange_id: exchange.id,
-      })
-      .select()
-      .single();
+    if (!exchangeId) {
+      // Create Exchange Record
+      const { data: exchange, error: exchErr } = await (supabase as any)
+        .from("exchanges")
+        .insert({
+          request_id: request.id,
+          user_one_id: request.sender_id,
+          user_two_id: request.receiver_id,
+          teaching_skill_id: request.offered_skill_id,
+          learning_skill_id: request.requested_skill_id,
+          status: "active",
+        })
+        .select()
+        .single();
 
-    if (convErr) throw convErr;
+      if (exchErr) throw exchErr;
+      exchangeId = exchange.id;
 
-    // Add conversation members
-    await (supabase as any).from("conversation_members").insert([
-      { conversation_id: conv.id, user_id: request.sender_id },
-      { conversation_id: conv.id, user_id: request.receiver_id },
-    ]);
+      // Create Conversation Record
+      const { data: conv, error: convErr } = await (supabase as any)
+        .from("conversations")
+        .insert({
+          exchange_id: exchangeId,
+        })
+        .select()
+        .single();
 
-    // Send Notification to Request Sender
-    const { data: receiverProfile } = await (supabase as any)
-      .from("profiles")
-      .select("full_name")
-      .eq("id", currentUserId)
-      .single();
+      if (!convErr && conv) {
+        // Add conversation members
+        await (supabase as any).from("conversation_members").insert([
+          { conversation_id: conv.id, user_id: request.sender_id },
+          { conversation_id: conv.id, user_id: request.receiver_id },
+        ]);
+      }
 
-    const receiverName = receiverProfile?.full_name || "Peer";
+      // Send Notification to Request Sender
+      const { data: receiverProfile } = await (supabase as any)
+        .from("profiles")
+        .select("full_name")
+        .eq("id", currentUserId)
+        .single();
 
-    await (supabase as any).from("notifications").insert({
-      user_id: request.sender_id,
-      type: "request_accepted",
-      title: "Exchange Request Accepted!",
-      message: `${receiverName} accepted your skill exchange request!`,
-      reference_id: exchange.id,
-      reference_type: "exchange",
-      is_read: false,
-    });
+      const receiverName = receiverProfile?.full_name || "Peer";
 
-    return { success: true, exchangeId: exchange.id };
+      await (supabase as any).from("notifications").insert({
+        user_id: request.sender_id,
+        type: "request_accepted",
+        title: "Exchange Request Accepted!",
+        message: `${receiverName} accepted your skill exchange request!`,
+        reference_id: exchangeId,
+        reference_type: "exchange",
+        is_read: false,
+      });
+    }
+
+    return { success: true, exchangeId };
   } catch (err: any) {
     console.error("acceptExchangeRequest error:", err);
     return { success: false, error: err.message || "Failed to accept request." };

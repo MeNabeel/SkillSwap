@@ -26,6 +26,7 @@ import {
   ArrowRight,
   BookOpen,
   Loader2,
+  Compass,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -164,35 +165,25 @@ export default function ExchangesPage() {
 
         <CardFooter className="pt-3 border-t border-border flex items-center justify-between gap-2">
           {statusType === "active" && (
-            <>
+            <div className="flex items-center gap-2 w-full">
+              <Button asChild size="sm" className="text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold flex-1 shadow-xs border-none">
+                <Link href={`/exchanges/${item.id}`}>
+                  <BookOpen className="h-3.5 w-3.5 mr-1" /> Open Workspace
+                </Link>
+              </Button>
               <Button asChild size="sm" variant="outline" className="text-xs flex-1">
                 <Link href="/messages">
                   <MessageSquare className="h-3.5 w-3.5 mr-1 text-primary" /> Open Chat
                 </Link>
               </Button>
-
-              <Button
-                variant="emerald"
-                size="sm"
-                onClick={() => handleComplete(item.id)}
-                disabled={actionLoadingId === item.id}
-                className="text-xs font-semibold flex-1"
-              >
-                {actionLoadingId === item.id ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                ) : (
-                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                )}
-                Mark Complete
-              </Button>
-            </>
+            </div>
           )}
 
           {statusType === "completed" && (
             <div className="flex items-center justify-between w-full">
               <Button asChild size="sm" variant="ghost" className="text-xs">
                 <Link href={`/exchanges/${item.id}`}>
-                  View Details <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  Workspace Archive <ArrowRight className="h-3.5 w-3.5 ml-1" />
                 </Link>
               </Button>
 
@@ -224,7 +215,7 @@ export default function ExchangesPage() {
           Active & Completed Skill Exchanges
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
-          Track active learning partnerships, access chat conversations, and complete exchange sessions.
+          Access your interactive Exchange Workspaces, manage learning plans, schedule video calls, and complete sessions.
         </p>
       </div>
 
@@ -259,7 +250,7 @@ export default function ExchangesPage() {
                     <Repeat className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                     <h3 className="text-sm font-semibold">No active exchanges</h3>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Once a skill exchange request is accepted, your active partnership will appear here.
+                      Once a skill exchange request is accepted, your active workspace will appear here.
                     </p>
                     <Button asChild size="sm" className="mt-3 text-xs">
                       <Link href="/requests">View Exchange Requests</Link>
